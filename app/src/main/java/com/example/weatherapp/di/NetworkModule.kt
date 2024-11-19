@@ -46,13 +46,4 @@ object NetworkModule {
 }
 
 
-//@Module
-//@InstallIn(SingletonComponent::class)
-//object NetworkModule {
-//
-//    @Singleton
-//    @Provides
-//    fun provideSmhiApiService(): SmhiApiService {
-//        return SmhiApi.retrofitService
-//    }
-//}
+
