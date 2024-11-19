@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     id("com.google.dagger.hilt.android") // Lägg till Hilt-plugin
     kotlin("kapt") // Lägg till Kapt-plugin för Hilt-annoteringar
 
@@ -46,6 +47,8 @@ android {
 }
 
 dependencies {
+    implementation(libs.kotlinx.serialization.json)
+    implementation("androidx.navigation:navigation-compose:2.7.0")
     implementation(libs.hilt.navigation.compose)
     // Lägg till detta för att tvinga rätt version av JavaPoet
     implementation(libs.javapoet)

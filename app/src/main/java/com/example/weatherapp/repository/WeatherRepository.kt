@@ -1,43 +1,72 @@
 package com.example.weatherapp.repository
 
+import android.content.Context
+import android.util.Log
 import com.example.weatherapp.model.ParsedWeatherData
+import com.example.weatherapp.model.ParsedWeatherResult
+import com.example.weatherapp.model.PlaceSuggestion
 import com.example.weatherapp.model.TimeSeries
-import com.example.weatherapp.network.SmhiApi
+import com.example.weatherapp.network.LocationSearchApiService
 import com.example.weatherapp.network.SmhiApiService
+import com.example.weatherapp.utils.DataStorage
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
 
-//TODO: BYgg om till att använda Hilt för DI
 
 
 class WeatherRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val locationSearchApi: LocationSearchApiService,
     private val smhiApiService: SmhiApiService
 ) {
-    suspend fun fetchWeather(longitude: Float, latitude: Float): Result<List<ParsedWeatherData>> {
+    // Sök efter plats
+    suspend fun searchPlace(query: String): List<PlaceSuggestion> {
+        return locationSearchApi.searchPlace(query)
+    }
+
+    // Hämta väderdata från API eller från lagring om något går fel
+    suspend fun fetchWeather(latitude: Float, longitude: Float): ParsedWeatherResult {
+        // Validera koordinater
+        if (!areCoordinatesValid(latitude, longitude)) {
+            throw IllegalArgumentException("Coordinates out of bounds")
+        }
+
         return try {
-            // Ensure coordinates are valid before making API request
-            if (!areCoordinatesValid(longitude, latitude)) {
-                return Result.failure(Exception("Coordinates out of bounds"))
-            }
+            // Annorlunda API-call pga KTH-testserver
+//            val response = smhiApiService.getWeatherForecast(
+//                lonLat = "lon/$longitude/lat/$latitude"
+//            )
+            // Korrekt API-call till SMHIs server
+            val response = smhiApiService.getWeatherForecast(latitude, longitude)
 
-            //Annorlunda API-call pga KTH-testserver
-            val response = SmhiApi.retrofitService.getWeatherForecast(
-                lonLat = "lon/$longitude/lat/$latitude"
+            Log.d("WeatherRepository", "Fetched Weather from server: $response")
 
-            )
-            //Korrekt API-call till SMHIs server
-            //val response = SmhiApi.retrofitService.getWeatherForecast(longitude, latitude)
-
+            // Transformera API-respons till ParsedWeatherData
             val parsedData = response.timeSeries?.map { timeSeries ->
                 parseTimeSeries(timeSeries)
             } ?: emptyList()
 
-            Result.success(parsedData)
+            val result = ParsedWeatherResult(
+                weatherData = parsedData,
+                coordinates = response.geometry?.coordinates?.flatten() ?: emptyList()
+            )
+
+            // Spara resultatet till lokal lagring
+            saveWeatherData(result)
+
+            result
         } catch (e: Exception) {
-            Result.failure(e)
+            Log.e("WeatherRepository", "Error fetching weather data", e)
+
+            // Hämta data från lokal lagring om API-anropet misslyckas
+            loadWeatherData() ?: ParsedWeatherResult(
+                weatherData = emptyList(),
+                coordinates = listOf(latitude.toDouble(), longitude.toDouble())
+            )
         }
     }
 
@@ -53,7 +82,7 @@ class WeatherRepository @Inject constructor(
      * the precise polygon boundaries, especially near the corners of the valid area.
      * For stricter validation, consider implementing a point-in-polygon check.
      */
-    private fun areCoordinatesValid(longitude: Float, latitude: Float): Boolean {
+    private fun areCoordinatesValid(latitude: Float, longitude: Float): Boolean {
         val isLatValid = latitude in 52.500440..70.740996
         val isLonValid = longitude in -8.541278..37.848053
         return isLatValid && isLonValid
@@ -88,5 +117,14 @@ class WeatherRepository @Inject constructor(
                 "N/A"
             }
         } ?: "N/A"
+    }
+
+    // Använd redan befintliga metoder för att spara och hämta data
+    fun saveWeatherData(weatherResult: ParsedWeatherResult) {
+        DataStorage.saveWeatherData(context, weatherResult)
+    }
+
+    fun loadWeatherData(): ParsedWeatherResult? {
+        return DataStorage.loadWeatherData(context)
     }
 }
