@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Brightness2
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Warning
@@ -38,6 +39,8 @@ import androidx.compose.ui.unit.dp
 import com.example.weatherapp.model.ParsedWeatherData
 import com.example.weatherapp.utils.openMaps
 import com.example.weatherapp.viewmodel.WeatherViewModel
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun WeatherScreen(viewModel: WeatherViewModel) {
@@ -149,8 +152,6 @@ fun WeatherScreen(viewModel: WeatherViewModel) {
 }
 
 
-
-
 @Composable
 fun WeatherItem(parsedData: ParsedWeatherData) {
     Row(
@@ -160,34 +161,39 @@ fun WeatherItem(parsedData: ParsedWeatherData) {
     ) {
         Text(text = parsedData.formattedTime, modifier = Modifier.weight(1f))
         WindDirectionIcon(parsedData.windDirection ?: 0, Modifier.weight(1f))
-        // Ny kolumn för att visa vindriktningen i grader
-//        Text(
-//            text = "${parsedData.windDirection ?: "N/A"}°",
-//            modifier = Modifier.weight(1f),
-//            style = MaterialTheme.typography.bodyMedium
-//        )
+
         Text(text = "${parsedData.windSpeed ?: "N/A"} m/s", modifier = Modifier.weight(1f))
 
         Text(text = "${parsedData.temperature ?: "N/A"}°C", modifier = Modifier.weight(1f))
-        CloudCoverageIcon(cloudCoverage = parsedData.cloudCoverage ?: 0, Modifier.weight(1f))
+        CloudCoverageIcon(
+            cloudCoverage = parsedData.cloudCoverage ?: 0,
+            formattedTime = parsedData.formattedTime,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
-
-
 @Composable
-fun CloudCoverageIcon(cloudCoverage: Int, modifier: Modifier = Modifier) {
+fun CloudCoverageIcon(cloudCoverage: Int, formattedTime: String, modifier: Modifier = Modifier) {
     val sunColor = Color.Yellow
+    val moonColor = Color.Yellow
     val cloudColor = Color.Gray.copy(alpha = (cloudCoverage / 8f).coerceIn(0f, 1f))
+
+    // Extrahera timmen från formattedTime
+    val hour = extractHourFromFormattedTime(formattedTime)
+
+    // Kontrollera om det är natt (20:00–06:00)
+    val isNight = hour != null && (hour >= 20 || hour < 6)
 
     Box(
         modifier = modifier.size(40.dp),
         contentAlignment = Alignment.Center
     ) {
+
         Icon(
-            imageVector = Icons.Filled.WbSunny,
-            contentDescription = "Sun",
-            tint = sunColor,
+            imageVector = if (isNight) Icons.Filled.Brightness2 else Icons.Filled.WbSunny, // Måne eller sol
+            contentDescription = if (isNight) "Moon" else "Sun",
+            tint = if (isNight) moonColor else sunColor,
             modifier = Modifier.size(40.dp)
         )
         Icon(
@@ -200,6 +206,7 @@ fun CloudCoverageIcon(cloudCoverage: Int, modifier: Modifier = Modifier) {
         )
     }
 }
+
 
 @Composable
 fun WindDirectionIcon(windDirection: Int, modifier: Modifier = Modifier) {
@@ -218,5 +225,16 @@ fun WindDirectionIcon(windDirection: Int, modifier: Modifier = Modifier) {
                 .size(30.dp)
                 .rotate(correctedAngle.toFloat())
         )
+    }
+}
+
+fun extractHourFromFormattedTime(formattedTime: String): Int? {
+    return try {
+        val dateFormat = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
+        val date = dateFormat.parse(formattedTime)
+        date?.hours // Extrahera timmen från Date-objektet
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null // Returnera null om det uppstår ett fel
     }
 }

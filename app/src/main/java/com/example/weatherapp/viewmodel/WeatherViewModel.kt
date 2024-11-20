@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.weatherapp.model.ParsedWeatherData
 import com.example.weatherapp.model.ParsedWeatherResult
 import com.example.weatherapp.model.PlaceSuggestion
+import com.example.weatherapp.repository.FavoriteRepository
 import com.example.weatherapp.repository.WeatherRepository
 import com.example.weatherapp.utils.DataStorage
 import com.example.weatherapp.utils.LocationUtils
@@ -23,14 +24,16 @@ import javax.inject.Inject
 class WeatherViewModel @Inject constructor(
     @ApplicationContext private val context: Context, // Injicera Context
     private val repository: WeatherRepository,
+    private val favoriteRepository: FavoriteRepository,
     private val locationUtils: LocationUtils
 ) : ViewModel() {
 
     private val _locationPermissionGranted = MutableLiveData(false)
     val locationPermissionGranted: LiveData<Boolean> = _locationPermissionGranted
 
-    private val _favourites = MutableLiveData<List<String>>(emptyList())
-    val favourites: LiveData<List<String>> = _favourites
+    // Favoriter hanteras av FavoriteRepository
+    private val _favorites = MutableLiveData<List<PlaceSuggestion>>(emptyList())
+    val favorites: LiveData<List<PlaceSuggestion>> = _favorites
 
     // Exponera hela ParsedWeatherResult
     private val _weatherResult = MutableLiveData<ParsedWeatherResult?>()
@@ -42,10 +45,10 @@ class WeatherViewModel @Inject constructor(
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> = _isLoading
 
-    private val _latitude = MutableLiveData("60.383") // Default som String
+    private val _latitude = MutableLiveData("") // Default som String
     val latitude: LiveData<String> = _latitude
 
-    private val _longitude = MutableLiveData("14.333") // Default som String
+    private val _longitude = MutableLiveData("") // Default som String
     val longitude: LiveData<String> = _longitude
 
     private val _placeSuggestions = MutableLiveData<List<PlaceSuggestion>>(emptyList())
@@ -53,11 +56,31 @@ class WeatherViewModel @Inject constructor(
 
     init {
         loadSavedWeatherData()
+        loadFavorites()
     }
 
-    fun setLocationPermissionGranted(granted: Boolean) {
-        _locationPermissionGranted.value = granted
+    // Favoritrelaterade funktioner
+    fun loadFavorites() {
+        _favorites.value = favoriteRepository.getFavorites(context)
     }
+
+    fun addFavorite(placeSuggestion: PlaceSuggestion) {
+        favoriteRepository.addFavorite(context, placeSuggestion)
+        loadFavorites() // Uppdatera listan
+    }
+
+    fun removeFavorite(geonameid: Int) {
+        favoriteRepository.removeFavorite(context, geonameid)
+        loadFavorites() // Uppdatera listan
+    }
+
+    fun isFavorite(placeSuggestion: PlaceSuggestion): Boolean {
+        return _favorites.value?.any { it.geonameid == placeSuggestion.geonameid } == true
+    }
+
+//    fun setLocationPermissionGranted(granted: Boolean) {
+//        _locationPermissionGranted.value = granted
+//    }
 
     fun fetchWeather(latitude: Float, longitude: Float) {
         viewModelScope.launch {
@@ -111,6 +134,7 @@ class WeatherViewModel @Inject constructor(
         viewModelScope.launch {
             if (isNetworkAvailable()) {
                 _isLoading.value = true
+                _errorMessage.value=null
                 try {
                     val results = repository.searchPlace(query)
                     _placeSuggestions.value = results

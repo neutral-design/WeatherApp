@@ -1,5 +1,6 @@
 package com.example.weatherapp.navigation
 
+import FavoritesScreen
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -25,12 +26,14 @@ sealed class WeatherTab(val title: String, val route: String) {
     object Main : WeatherTab("Home", "main")
     object Search : WeatherTab("Search", "search_by_name")
     object Weather : WeatherTab("Weather", "weather")
+    object Favorites : WeatherTab("Favorites", "favorites") // Ny flik
 }
 
 val weatherTabs = listOf(
     WeatherTab.Main,
     WeatherTab.Search,
-    WeatherTab.Weather
+    WeatherTab.Weather,
+    WeatherTab.Favorites // Lägg till den nya fliken i listan
 )
 
 @Composable
@@ -100,114 +103,22 @@ fun WeatherTabsNavHost(viewModel: WeatherViewModel = hiltViewModel()) {
             composable(WeatherTab.Weather.route) {
                 WeatherScreen(viewModel = viewModel)
             }
+            composable(WeatherTab.Favorites.route) { // Lägg till den nya fliken
+                FavoritesScreen(
+                    onPlaceSelected = { lat, lon ->
+                        viewModel.updateLatitude(lat.toString())
+                        viewModel.updateLongitude(lon.toString())
+                        viewModel.fetchWeather(lat, lon)
+                        selectedTabRoute = WeatherTab.Weather.route
+                        navController.navigate(WeatherTab.Weather.route) {
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    viewModel = viewModel
+                )
+            }
         }
     }
 }
-
-//
-//@Composable
-//fun WeatherTabsNavHost(viewModel: WeatherViewModel = hiltViewModel()) {
-//    val navController = rememberNavController()
-//    var selectedTab by rememberSaveable { mutableStateOf<WeatherTab>(WeatherTab.Main) }
-//
-//    Scaffold(
-//        topBar = {
-//            TabRow(
-//                selectedTabIndex = weatherTabs.indexOf(selectedTab),
-//                modifier = Modifier.fillMaxWidth()
-//            ) {
-//                weatherTabs.forEach { tab ->
-//                    Tab(
-//                        selected = tab == selectedTab,
-//                        onClick = {
-//                            if (tab != selectedTab) {
-//                                selectedTab = tab
-//                                navController.navigate(tab.route) {
-//                                    launchSingleTop = true
-//                                    restoreState = true
-//                                }
-//                            }
-//                        },
-//                        text = { Text(tab.title) }
-//                    )
-//                }
-//            }
-//        }
-//    ) { padding ->
-//        NavHost(
-//            navController = navController,
-//            startDestination = WeatherTab.Main.route,
-//            modifier = Modifier.padding(padding)
-//        ) {
-//            composable(WeatherTab.Main.route) {
-//                MainScreen(
-//                    viewModel = viewModel,
-//                    navController = navController,
-//                    onTabChange = { tab -> // Skicka logik för att byta tab
-//                        selectedTab = tab
-//                        navController.navigate(tab.route) {
-//                            launchSingleTop = true
-//                            restoreState = true
-//                        }
-//                    }
-//                )
-//            }
-//            composable(WeatherTab.Search.route) {
-//                SearchByNameScreen(
-//                    onPlaceSelected = { lat, lon ->
-//                        viewModel.updateLatitude(lat.toString())
-//                        viewModel.updateLongitude(lon.toString())
-//                        viewModel.fetchWeather(lat, lon) // Hämta väderdata för vald plats
-//                        selectedTab = WeatherTab.Weather
-//                        navController.navigate(WeatherTab.Weather.route) {
-//                            launchSingleTop = true
-//                            restoreState = true
-//                        }
-//                    },
-//                    viewModel = viewModel
-//                )
-//            }
-//            composable(WeatherTab.Weather.route) {
-//                WeatherScreen(viewModel = viewModel)
-//            }
-//        }
-//    }
-//}
-
-
-
-
-//@Composable
-//fun WeatherAppNavHost(viewModel: WeatherViewModel = hiltViewModel()) {
-//    val navController = rememberNavController()
-//
-//    NavHost(navController = navController, startDestination = "main") {
-//        composable("main") {
-//            MainScreen(
-//                viewModel = viewModel,
-//                navController = navController
-//            )
-//        }
-//        composable("location_permission") {
-//            LocationPermissionScreen(
-//                onPermissionResult = { navController.popBackStack() },
-//                viewModel = viewModel
-//            )
-//        }
-//        composable("weather") {
-//            WeatherScreen(viewModel = viewModel)
-//        }
-//        composable("search_by_name") {
-//            SearchByNameScreen(
-//                onPlaceSelected = { lon, lat ->
-//                    viewModel.fetchWeather(lon, lat)
-//                    navController.navigate("weather")
-//                },
-//                viewModel = viewModel
-//            )
-//        }
-//    }
-//}
-
-
 

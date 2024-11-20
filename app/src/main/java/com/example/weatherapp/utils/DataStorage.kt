@@ -3,6 +3,7 @@ package com.example.weatherapp.utils
 import android.content.Context
 import androidx.core.content.edit
 import com.example.weatherapp.model.ParsedWeatherResult
+import com.example.weatherapp.model.PlaceSuggestion
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -11,7 +12,9 @@ object DataStorage {
 
     private const val PREFS_NAME = "WeatherAppPrefs"
     private const val WEATHER_DATA_KEY = "WeatherData"
-    private const val FAVOURITES_KEY = "Favourites"
+    private const val FAVORITES_KEY = "Favorites"
+
+    private val json = Json { encodeDefaults = true }
 
     // Spara väderdata
     fun saveWeatherData(context: Context, weatherResult: ParsedWeatherResult) {
@@ -41,25 +44,28 @@ object DataStorage {
 
 
     // Spara favoriter
-    fun saveFavourites(context: Context, favourites: List<String>) {
+    fun saveFavorites(context: Context, favorites: List<PlaceSuggestion>) {
+        val jsonString = json.encodeToString(favorites)
         val sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         sharedPreferences.edit {
-            putStringSet(FAVOURITES_KEY, favourites.toSet())
+            putString(FAVORITES_KEY, jsonString)
         }
     }
 
     // Hämta favoriter
-    fun loadFavourites(context: Context): List<String> {
+    fun loadFavorites(context: Context): List<PlaceSuggestion> {
         val sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val favouritesSet = sharedPreferences.getStringSet(FAVOURITES_KEY, emptySet())
-        return favouritesSet?.toList() ?: emptyList()
+        val jsonString = sharedPreferences.getString(FAVORITES_KEY, null)
+        return jsonString?.let {
+            json.decodeFromString<List<PlaceSuggestion>>(it)
+        } ?: emptyList()
     }
 
     // Rensa sparade favoriter
-    fun clearFavourites(context: Context) {
+    fun clearFavorites(context: Context) {
         val sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         sharedPreferences.edit {
-            remove(FAVOURITES_KEY)
+            remove(FAVORITES_KEY)
         }
     }
 }

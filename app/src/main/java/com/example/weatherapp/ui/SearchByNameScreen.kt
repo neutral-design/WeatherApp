@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarOutline
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -37,6 +39,7 @@ fun SearchByNameScreen(
 ) {
     var query by remember { mutableStateOf("") }
     val searchResults = viewModel.placeSuggestions.observeAsState(emptyList())
+    val favorites by viewModel.favorites.observeAsState(emptyList())
     val errorMessage by viewModel.errorMessage.observeAsState()
 
     Column(modifier = Modifier.padding(16.dp)) {
@@ -78,21 +81,44 @@ fun SearchByNameScreen(
                 )
             }
         }
-
-
         LazyColumn {
             items(searchResults.value) { place ->
-                Text(
-                    text = "${place.place}, ${place.country}",
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp)
-                        .clickable {
-                            onPlaceSelected(place.lat.toFloat(), place.lon.toFloat())
-                        }
-                )
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${place.place}, ${place.county}, ${place.country}",
+                        modifier = Modifier
+                            .weight(1f) // Tar upp utrymmet till vänster om ikonen
+                            .clickable {
+                                onPlaceSelected(place.lat.toFloat(), place.lon.toFloat())
+                            }
+                    )
+
+                    // Stjärnikonen för favoriter
+                    val isFavorite = favorites.any { it.geonameid == place.geonameid }
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Default.Star else Icons.Default.StarOutline,
+                        contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                        tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .clickable {
+                                if (isFavorite) {
+                                    viewModel.removeFavorite(place.geonameid)
+                                } else {
+                                    viewModel.addFavorite(place)
+                                }
+                            }
+                    )
+                }
             }
         }
+
+
     }
 }
 
