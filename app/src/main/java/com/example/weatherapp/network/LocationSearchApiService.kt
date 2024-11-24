@@ -9,7 +9,7 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 // Ny bas-URL för sök-API
-private const val SEARCH_BASE_URL = "https://www.smhi.se/"
+//private const val SEARCH_BASE_URL = "https://www.smhi.se/"
 
 // Interface för sökfunktionen
 interface LocationSearchApiService {

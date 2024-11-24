@@ -119,7 +119,6 @@ class WeatherRepository @Inject constructor(
         } ?: "N/A"
     }
 
-    // Använd redan befintliga metoder för att spara och hämta data
     fun saveWeatherData(weatherResult: ParsedWeatherResult) {
         DataStorage.saveWeatherData(context, weatherResult)
     }
