@@ -17,6 +17,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.weatherapp.ui.LocationPermissionScreen
 import com.example.weatherapp.ui.MainScreen
 import com.example.weatherapp.ui.SearchByNameScreen
 import com.example.weatherapp.ui.WeatherScreen
@@ -39,6 +40,7 @@ val weatherTabs = listOf(
 @Composable
 fun WeatherTabsNavHost(viewModel: WeatherViewModel = hiltViewModel()) {
     val navController = rememberNavController()
+
 
     // Spara flikens route istället för WeatherTab-objektet
     var selectedTabRoute by rememberSaveable { mutableStateOf(WeatherTab.Main.route) }
@@ -116,6 +118,15 @@ fun WeatherTabsNavHost(viewModel: WeatherViewModel = hiltViewModel()) {
                         }
                     },
                     viewModel = viewModel
+                )
+            }
+            composable("location_permission") {
+                LocationPermissionScreen(
+                    viewModel = viewModel,
+                    onPermissionResult = {
+                        // När användaren klickar klart, gå tillbaka till Main
+                        navController.popBackStack()
+                    }
                 )
             }
         }
